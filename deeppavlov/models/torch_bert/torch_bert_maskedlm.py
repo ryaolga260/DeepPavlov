@@ -90,15 +90,30 @@ class TorchBertMaskedLM(TorchModel):
 
         # Get features - i.e. input_ids, attn_mask, ttype_ids
         features = self.bert_preprocessor(features)
+        
+        # Convert into dict
+        _input = {}
+        for elem in ['input_ids', 'attention_mask', 'token_type_ids']:
+            _input[elem] = [getattr(f, elem) for f in features]
+
+        for elem in ['input_ids', 'attention_mask', 'token_type_ids']:
+            _input[elem] = torch.cat(_input[elem], dim=0).to(self.device)
+
 
         with torch.no_grad():
+            features = {key:value for (key,value) in _input.items() if key in self.model.forward.__code__.co_varnames}
+
             logits = self.model(**features).logits
 
             logits = np.argmax(logits, axis=-1)
 
         preds = []
+
         for i in range(logits.shape[0]):
-            preds.append(self.bert_preprocessor.tokenizer.decode(logits[i,:]))
+            # Reduce to same length as the text input for that sentence
+            index = torch.where(features["attention_mask"][i] == 0)[0][0]
+            pred = self.bert_preprocessor.tokenizer.decode(logits[i,:index])
+            preds.append(pred)
 
         return preds
 
