@@ -1,0 +1,38 @@
+{
+  "chainer": {
+    "in": [
+      "texts"
+    ],
+    "pipe": [
+      {
+        "class_name": "torch_bert_maskedlm",
+        "pretrained_bert": "bert-base-uncased",
+        "vocab_file": "bert-base-uncased",
+        "max_seq_length": 512,
+        "in": [
+          "texts"
+        ],
+        "out": [
+          "texts_unmasked"
+        ]
+      }
+    ],
+    "out": [
+      "texts_unmasked"
+    ]
+  },
+  "metadata": {
+    "variables": {
+      "ROOT_PATH": "~/.deeppavlov",
+      "DOWNLOADS_PATH": "{ROOT_PATH}/downloads",
+      "MODELS_PATH": "{ROOT_PATH}/models",
+      "CONFIGS_PATH": "{DEEPPAVLOV_PATH}/configs"
+    },
+    "requirements": [
+      "{DEEPPAVLOV_PATH}/requirements/pytorch.txt",
+      "{DEEPPAVLOV_PATH}/requirements/transformers.txt"
+    ]
+  }
+}
+  
+  
