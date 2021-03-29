@@ -15,12 +15,13 @@
 import re
 from logging import getLogger
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Dict, Union, Optional
 
 import numpy as np
 import torch
 from overrides import overrides
 from transformers import AutoModelForMaskedLM, AutoConfig
+from transformers.data.processors.utils import InputFeatures
 
 from deeppavlov.core.common.errors import ConfigError
 from deeppavlov.core.commands.utils import expand_path
@@ -50,6 +51,9 @@ class TorchBertMaskedLM(TorchModel):
                  bert_config_file: Optional[str] = None,
                  max_seq_length: int = 128,
                  do_lower_case: bool = True,
+                 optimizer: str = "AdamW",
+                 optimizer_parameters: dict = {"lr": 1e-3, "weight_decay": 0.01, "betas": (0.9, 0.999), "eps": 1e-6},
+                 clip_norm: Optional[float] = None,
                  save_path: Optional[str] = None,
                  **kwargs) -> None:
 
@@ -57,8 +61,11 @@ class TorchBertMaskedLM(TorchModel):
         self.bert_config_file = bert_config_file
         self.bert_preprocessor = TorchTransformersPreprocessor(vocab_file=vocab_file, do_lower_case=do_lower_case,
                                                                max_seq_length=max_seq_length)
+        self.clip_norm = clip_norm
 
-        super().__init__(save_path=save_path, **kwargs)
+        super().__init__(optimizer=optimizer,
+                        optimizer_parameters=optimizer_parameters,
+                        save_path=save_path, **kwargs)
 
     @overrides
     def load(self, fname=None):
@@ -85,7 +92,6 @@ class TorchBertMaskedLM(TorchModel):
 
         Returns:
             Predicted text without [MASK] token
-
         """
 
         # Get features - i.e. input_ids, attn_mask, ttype_ids
@@ -117,5 +123,42 @@ class TorchBertMaskedLM(TorchModel):
 
         return preds
 
-    def train_on_batch(self, **kwargs):
-        raise NotImplementedError
+    def train_on_batch(self, features: List[InputFeatures], y: Union[List[int], List[List[int]]]) -> Dict:
+        """Train model on given batch.
+        This method calls train_op using features and y (labels).
+
+        Args:
+            features: batch of InputFeatures with masked tokens, i.e. [MASK]
+            y: batch of input_ids without [MASK] tokens, i.e. len(features.input_ids) == len(y)
+
+        Returns:
+            dict with loss and learning_rate values
+        """
+
+        _input = {}
+        for elem in ['input_ids', 'attention_mask', 'token_type_ids']:
+            _input[elem] = [getattr(f, elem) for f in features]
+
+        for elem in ['input_ids', 'attention_mask', 'token_type_ids']:
+            _input[elem] = torch.cat(_input[elem], dim=0).to(self.device)
+
+        _input['labels'] = torch.cat(y, dim=0).to(self.device) # labels should be the exact same as input_ids, but w/o real ids instead of [MASK] ids
+
+        self.optimizer.zero_grad()
+
+        tokenized = {key:value for (key,value) in _input.items() if key in self.model.forward.__code__.co_varnames}
+
+        # Token_type_id is omitted for Text Classification
+
+        loss, logits = self.model(**tokenized)
+        loss.backward()
+        # Clip the norm of the gradients to 1.0.
+        # This is to help prevent the "exploding gradients" problem.
+        if self.clip_norm:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_norm)
+
+        self.optimizer.step()
+        if self.lr_scheduler is not None:
+            self.lr_scheduler.step()
+
+        return {'loss': loss.item()}
