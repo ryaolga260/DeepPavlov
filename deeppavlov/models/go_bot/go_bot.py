@@ -27,7 +27,7 @@ from deeppavlov.models.go_bot.dto.dataset_features import UtteranceDataEntry, Di
     BatchDialoguesDataset, UtteranceFeatures, UtteranceTarget, BatchDialoguesFeatures
 from deeppavlov.models.go_bot.dto.shared_gobot_params import SharedGoBotParams
 from deeppavlov.models.go_bot.nlg.nlg_manager import NLGManagerInterface
-from deeppavlov.models.go_bot.nlu.nlu_manager import NLUManaaager
+from deeppavlov.models.go_bot.nlu.nlu_manager import NLUManager
 from deeppavlov.models.go_bot.policy.policy_network import PolicyNetwork, PolicyNetworkParams
 from deeppavlov.models.go_bot.policy.dto.policy_prediction import PolicyPrediction
 from deeppavlov.models.go_bot.tracker.featurized_tracker import FeaturizedTracker
