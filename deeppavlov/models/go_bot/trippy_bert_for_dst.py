@@ -14,7 +14,7 @@
 
 import torch
 from torch import nn
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEnnnntropyLoss
 
 from transformers.modeling_bert import BertModel, BertPreTrainedModel
 
