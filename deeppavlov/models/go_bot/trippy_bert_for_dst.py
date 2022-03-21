@@ -47,6 +47,7 @@ class BertForDST(BertPreTrainedModel):
         else:
             self.refer_index = -1
 
+        config['architectures'] = ['sentence-transformers/LaBSE']
         print(config)
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.dst_dropout_rate)
