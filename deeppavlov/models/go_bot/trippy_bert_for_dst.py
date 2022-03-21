@@ -47,6 +47,7 @@ class BertForDST(BertPreTrainedModel):
         else:
             self.refer_index = -1
 
+        print(config)
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.dst_dropout_rate)
         self.dropout_heads = nn.Dropout(config.dst_heads_dropout_rate)
